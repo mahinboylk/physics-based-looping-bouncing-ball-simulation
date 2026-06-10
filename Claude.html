@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bouncing Ball — Gravity Simulation</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f5f4f0; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+  canvas { display: block; border-radius: 12px; background: #eceae4; }
+  .stats { display: flex; gap: 12px; margin-top: 12px; width: 660px; }
+  .stat { flex: 1; background: #eceae4; border-radius: 8px; padding: 10px 14px; }
+  .stat-label { font-size: 12px; color: #888; margin: 0 0 2px; }
+  .stat-value { font-size: 18px; font-weight: 500; color: #1a1a1a; margin: 0; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1c1c1a; }
+    canvas { background: #2a2a28; }
+    .stat { background: #2a2a28; }
+    .stat-label { color: #888; }
+    .stat-value { color: #f0efe9; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="c" width="660" height="340"></canvas>
+<div class="stats">
+  <div class="stat"><p class="stat-label">Velocity</p><p class="stat-value" id="sv">0.0 m/s</p></div>
+  <div class="stat"><p class="stat-label">Height</p><p class="stat-value" id="sh">0.0 m</p></div>
+  <div class="stat"><p class="stat-label">Bounce</p><p class="stat-value" id="sb">#0</p></div>
+  <div class="stat"><p class="stat-label">Energy</p><p class="stat-value" id="se">100%</p></div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+const g = 9.8;
+const RESTITUTION = 0.78;
+const RADIUS = 22;
+const FLOOR = H - 32;
+const SCALE = 18;
+const MASS = 1;
+
+const dark = () => window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+let y, vy, bounces, initialEnergy, startHeight, trailPoints;
+
+function reset() {
+  startHeight = 12;
+  y = FLOOR - startHeight * SCALE;
+  vy = 0;
+  bounces = 0;
+  initialEnergy = MASS * g * startHeight;
+  trailPoints = [];
+}
+
+reset();
+
+let last = null;
+const TRAIL_MAX = 38;
+
+function drawFloor() {
+  ctx.save();
+  ctx.strokeStyle = dark() ? '#444' : '#ccc';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([6, 5]);
+  ctx.beginPath();
+  ctx.moveTo(20, FLOOR);
+  ctx.lineTo(W - 20, FLOOR);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawTrail() {
+  if (trailPoints.length < 2) return;
+  ctx.save();
+  for (let i = 1; i < trailPoints.length; i++) {
+    const alpha = (i / trailPoints.length) * 0.35;
+    const r = RADIUS * (i / trailPoints.length) * 0.5;
+    ctx.beginPath();
+    ctx.arc(W / 2, trailPoints[i], r, 0, Math.PI * 2);
+    ctx.fillStyle = dark() ? `rgba(95,108,255,${alpha})` : `rgba(83,74,183,${alpha})`;
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawBall(squash) {
+  const sx = 1 + (squash - 1) * 0.6;
+  const sy = squash;
+  ctx.save();
+  ctx.translate(W / 2, y);
+  ctx.scale(sx, sy);
+  ctx.beginPath();
+  ctx.arc(0, 0, RADIUS, 0, Math.PI * 2);
+  ctx.fillStyle = dark() ? '#7F77DD' : '#534AB7';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(-RADIUS * 0.28, -RADIUS * 0.28, RADIUS * 0.22, 0, Math.PI * 2);
+  ctx.fillStyle = dark() ? '#AFA9EC' : '#7F77DD';
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawHeightLine() {
+  const heightM = Math.max(0, (FLOOR - y) / SCALE);
+  if (heightM < 0.15) return;
+  ctx.save();
+  ctx.strokeStyle = dark() ? 'rgba(95,200,180,0.25)' : 'rgba(15,110,86,0.2)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 4]);
+  ctx.beginPath();
+  ctx.moveTo(W / 2 + RADIUS + 10, y);
+  ctx.lineTo(W / 2 + RADIUS + 10, FLOOR);
+  ctx.stroke();
+  ctx.fillStyle = dark() ? 'rgba(95,200,180,0.7)' : 'rgba(15,110,86,0.75)';
+  ctx.font = '11px system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(heightM.toFixed(1) + 'm', W / 2 + RADIUS + 14, (y + FLOOR) / 2 + 4);
+  ctx.restore();
+}
+
+function frame(ts) {
+  if (!last) last = ts;
+  let dt = Math.min((ts - last) / 1000, 0.04);
+  last = ts;
+
+  vy += g * dt;
+  y += vy * SCALE * dt;
+
+  let squash = 1;
+
+  if (y + RADIUS >= FLOOR) {
+    y = FLOOR - RADIUS;
+    const impact = Math.abs(vy);
+    vy = -vy * RESTITUTION;
+    bounces++;
+    squash = 1 - 0.38 * Math.min(impact / 25, 1);
+
+    if (Math.abs(vy) < 0.6) {
+      reset();
+      last = ts;
+    }
+  }
+
+  trailPoints.push(y);
+  if (trailPoints.length > TRAIL_MAX) trailPoints.shift();
+
+  const heightM = Math.max(0, (FLOOR - y) / SCALE);
+  const kineticE = 0.5 * MASS * vy * vy;
+  const potentialE = MASS * g * heightM;
+  const totalE = kineticE + potentialE;
+  const energyPct = Math.min(100, Math.round((totalE / initialEnergy) * 100));
+
+  document.getElementById('sv').textContent = Math.abs(vy).toFixed(1) + ' m/s';
+  document.getElementById('sh').textContent = heightM.toFixed(1) + ' m';
+  document.getElementById('sb').textContent = '#' + bounces;
+  document.getElementById('se').textContent = energyPct + '%';
+
+  ctx.clearRect(0, 0, W, H);
+  drawFloor();
+  drawTrail();
+  drawHeightLine();
+  drawBall(squash);
+
+  requestAnimationFrame(frame);
+}
+
+requestAnimationFrame(frame);
+</script>
+
+</body>
+</html>

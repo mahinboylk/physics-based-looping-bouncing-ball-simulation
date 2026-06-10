@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bouncing Ball Physics Simulation</title>
+
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: linear-gradient(to bottom, #0f172a, #1e293b);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        font-family: Arial, sans-serif;
+    }
+
+    canvas {
+        background: #e2e8f0;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .label {
+        position: absolute;
+        top: 20px;
+        color: white;
+        font-size: 20px;
+        letter-spacing: 1px;
+    }
+</style>
+</head>
+<body>
+
+<div class="label">Bouncing Ball Under Gravity</div>
+<canvas id="scene" width="700" height="450"></canvas>
+
+<script>
+const canvas = document.getElementById("scene");
+const ctx = canvas.getContext("2d");
+
+const gravity = 0.45;
+const restitution = 0.82; // Energy retained after bounce
+
+const floor = canvas.height - 40;
+
+const ball = {
+    x: canvas.width / 2,
+    y: 80,
+    radius: 28,
+    vy: 0
+};
+
+function drawFloor() {
+    ctx.fillStyle = "#334155";
+    ctx.fillRect(0, floor, canvas.width, canvas.height - floor);
+}
+
+function drawBall() {
+    const gradient = ctx.createRadialGradient(
+        ball.x - 8,
+        ball.y - 8,
+        5,
+        ball.x,
+        ball.y,
+        ball.radius
+    );
+
+    gradient.addColorStop(0, "#ffffff");
+    gradient.addColorStop(0.2, "#60a5fa");
+    gradient.addColorStop(1, "#1d4ed8");
+
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    ctx.closePath();
+
+    // Shadow
+    ctx.beginPath();
+    ctx.ellipse(
+        ball.x,
+        floor + 8,
+        ball.radius * 1.2,
+        10,
+        0,
+        0,
+        Math.PI * 2
+    );
+
+    const shadowAlpha = Math.max(
+        0.15,
+        1 - (floor - ball.y) / 300
+    );
+
+    ctx.fillStyle = `rgba(0,0,0,${shadowAlpha * 0.25})`;
+    ctx.fill();
+}
+
+function updatePhysics() {
+
+    // Apply gravity
+    ball.vy += gravity;
+
+    // Move ball
+    ball.y += ball.vy;
+
+    // Collision with floor
+    if (ball.y + ball.radius >= floor) {
+        ball.y = floor - ball.radius;
+
+        // Reverse velocity with energy loss
+        ball.vy *= -restitution;
+
+        // Prevent tiny endless bouncing
+        if (Math.abs(ball.vy) < 1) {
+            ball.vy = -12; // Restart bounce loop
+        }
+    }
+}
+
+function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawFloor();
+    updatePhysics();
+    drawBall();
+
+    requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+
+</body>
+</html>

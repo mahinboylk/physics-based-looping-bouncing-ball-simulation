@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bouncing Ball Simulation</title>
+    <style>
+        /* Center the canvas on the screen and give it a clean background */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #1e1e24; /* Dark background */
+        }
+
+        canvas {
+            background-color: #f5f5f5; /* Light canvas for contrast */
+            border-bottom: 5px solid #2ecc71; /* Visual representation of the ground */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            border-radius: 4px 4px 0 0;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="simulationCanvas" width="400" height="500"></canvas>
+
+    <script>
+        const canvas = document.getElementById('simulationCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Physics variables
+        const gravity = 0.6;        // Downward acceleration
+        const restitution = 0.75;   // Energy retained after a bounce (0 = none, 1 = perfectly elastic)
+        
+        // Ball properties
+        const ball = {
+            x: canvas.width / 2,
+            y: 30,                  // Start near the top
+            radius: 20,
+            vy: 0,                  // Initial vertical velocity
+            color: '#e74c3c'
+        };
+
+        // Drawing function
+        function drawBall() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas each frame
+            
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = ball.color;
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        // Main animation loop
+        function update() {
+            // Apply physics
+            ball.vy += gravity; // Velocity increases due to gravity
+            ball.y += ball.vy;  // Position changes by current velocity
+
+            // Ground collision detection
+            if (ball.y + ball.radius >= canvas.height) {
+                // Snap the ball to the ground to prevent sinking
+                ball.y = canvas.height - ball.radius; 
+                
+                // Reverse velocity and apply damping (restitution)
+                ball.vy *= -restitution; 
+            }
+
+            // Loop trigger: If the ball is resting on the ground and has negligible velocity
+            if (ball.y + ball.radius >= canvas.height && Math.abs(ball.vy) < 1) {
+                // Wait briefly, then reset the ball to the top
+                ball.y = 30;
+                ball.vy = 0;
+            }
+
+            // Render and request the next frame
+            drawBall();
+            requestAnimationFrame(update);
+        }
+
+        // Start the simulation
+        update();
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bouncing Ball — Physics Simulation</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #0a0a14;
+    color: #e8e8f0;
+  }
+
+  body {
+    background: radial-gradient(ellipse at top, #1a1a3a 0%, #0a0a14 70%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .hud {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    background: rgba(10, 10, 20, 0.6);
+    backdrop-filter: blur(8px);
+    padding: 14px 18px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08);
+    line-height: 1.7;
+    min-width: 200px;
+  }
+
+  .hud .label { color: #8a8ab0; }
+  .hud .value { color: #6bd4ff; font-variant-numeric: tabular-nums; }
+  .hud .title {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #e8e8f0;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 6px;
+  }
+
+  .footer {
+    position: fixed;
+    bottom: 14px;
+    right: 20px;
+    font-size: 11px;
+    color: #555570;
+    letter-spacing: 0.5px;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<div class="hud">
+  <div class="title">⚙ Bouncing Ball Simulation</div>
+  <div><span class="label">Gravity:</span> <span class="value">9.81 m/s²</span></div>
+  <div><span class="label">Restitution:</span> <span class="value">0.78</span></div>
+  <div><span class="label">Height:</span> <span class="value" id="h">0.00 m</span></div>
+  <div><span class="label">Velocity:</span> <span class="value" id="v">0.00 m/s</span></div>
+  <div><span class="label">Bounces:</span> <span class="value" id="b">0</span></div>
+  <div><span class="label">Energy:</span> <span class="value" id="e">100%</span></div>
+</div>
+
+<div class="footer">Newtonian kinematics · v += g·Δt</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('scene');
+  const ctx = canvas.getContext('2d');
+
+  // HUD elements
+  const hud = {
+    h: document.getElementById('h'),
+    v: document.getElementById('v'),
+    b: document.getElementById('b'),
+    e: document.getElementById('e')
+  };
+
+  let W, H;
+  const resize = () => {
+    const dpr = window.devicePixelRatio || 1;
+    W = canvas.width = window.innerWidth * dpr;
+    H = canvas.height = window.innerHeight * dpr;
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  window.addEventListener('resize', resize);
+  resize();
+
+  // ---------- PHYSICS PARAMETERS ----------
+  const g = 9.81;                 // gravity (m/s^2)
+  const restitution = 0.78;       // coefficient of restitution (energy loss per bounce)
+  const ballRadius = 28;          // px
+  const ppm = 120;                // pixels per meter
+  const groundOffset = 80;        // px from bottom
+
+  // Simulation state
+  let y, vy, bounces, squash, initialHeight, startTime, paused;
+  const reset = () => {
+    initialHeight = (window.innerHeight - groundOffset - ballRadius - 60) / ppm;
+    y = initialHeight;            // meters from ground
+    vy = 0;                       // m/s
+    bounces = 0;
+    squash = 0;
+    startTime = performance.now();
+    paused = 0;
+  };
+  reset();
+
+  // ---------- RENDERING HELPERS ----------
+  const drawBackground = () => {
+    // subtle vertical gradient already in body; add a faint horizon
+    const grad = ctx.createLinearGradient(0, window.innerHeight - groundOffset, 0, window.innerHeight);
+    grad.addColorStop(0, 'rgba(30, 40, 70, 0.0)');
+    grad.addColorStop(1, 'rgba(30, 40, 70, 0.4)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, window.innerHeight - groundOffset, window.innerWidth, groundOffset);
+
+    // Ground line
+    ctx.strokeStyle = 'rgba(130, 170, 220, 0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, window.innerHeight - groundOffset);
+    ctx.lineTo(window.innerWidth, window.innerHeight - groundOffset);
+    ctx.stroke();
+
+    // Ruler ticks
+    ctx.strokeStyle = 'rgba(130, 170, 220, 0.15)';
+    ctx.fillStyle = 'rgba(180, 200, 240, 0.4)';
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.textAlign = 'right';
+    for (let m = 1; m * ppm < window.innerHeight - groundOffset - 20; m++) {
+      const yy = window.innerHeight - groundOffset - m * ppm;
+      ctx.beginPath();
+      ctx.moveTo(30, yy);
+      ctx.lineTo(50, yy);
+      ctx.stroke();
+      ctx.fillText(m + 'm', 26, yy + 3);
+    }
+  };
+
+  const drawShadow = (cx, groundY, h) => {
+    // Shadow gets smaller and fainter as ball rises
+    const maxH = initialHeight;
+    const t = Math.min(h / maxH, 1);
+    const scale = 1 - t * 0.6;
+    const alpha = (1 - t) * 0.55;
+    const w = ballRadius * scale * 1.4;
+    const h2 = ballRadius * scale * 0.3;
+    ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+    ctx.beginPath();
+    ctx.ellipse(cx, groundY, w, h2, 0, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  const drawBall = (cx, cy) => {
+    const r = ballRadius;
+    // Apply squash/stretch deformation
+    const sy = 1 + squash * 0.35;   // vertical scale
+    const sx = 1 - squash * 0.18;   // horizontal scale (conservation of volume-ish)
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(sx, sy);
+
+    // Outer glow
+    const glow = ctx.createRadialGradient(0, 0, r * 0.4, 0, 0, r * 1.8);
+    glow.addColorStop(0, 'rgba(110, 200, 255, 0.35)');
+    glow.addColorStop(1, 'rgba(110, 200, 255, 0.0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 1.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Main ball
+    const grad = ctx.createRadialGradient(-r * 0.4, -r * 0.4, r * 0.1, 0, 0, r);
+    grad.addColorStop(0, '#e8f4ff');
+    grad.addColorStop(0.25, '#6bd4ff');
+    grad.addColorStop(0.7, '#2978b5');
+    grad.addColorStop(1, '#0f3a5c');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Highlight
+    const hl = ctx.createRadialGradient(-r * 0.35, -r * 0.4, 0, -r * 0.35, -r * 0.4, r * 0.5);
+    hl.addColorStop(0, 'rgba(255,255,255,0.85)');
+    hl.addColorStop(1, 'rgba(255,255,255,0.0)');
+    ctx.fillStyle = hl;
+    ctx.beginPath();
+    ctx.arc(-r * 0.35, -r * 0.4, r * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  };
+
+  // ---------- SIMULATION LOOP ----------
+  let lastT = performance.now();
+  let trail = []; // recent positions for motion trail
+
+  const step = (now) => {
+    let dt = (now - lastT) / 1000; // seconds
+    lastT = now;
+    if (dt > 0.05) dt = 0.05; // clamp
+
+    const cx = window.innerWidth / 2;
+    const groundY = window.innerHeight - groundOffset;
+
+    // ----- PHYSICS UPDATE -----
+    if (paused > 0) {
+      paused -= dt;
+    } else {
+      // Euler integration (semi-implicit for stability)
+      vy -= g * dt;          // velocity (positive = upward)
+      y  += vy * dt;         // position in meters from ground
+
+      // Ground collision
+      if (y <= 0) {
+        y = 0;
+        vy = -vy * restitution;
+        bounces++;
+        squash = -1;         // trigger compression visual
+
+        // Stop condition: bounce velocity too small to see
+        if (Math.abs(vy) < 0.25) {
+          vy = 0;
+          paused = 1.2;      // pause, then reset
+        }
+      }
+    }
+
+    // Auto-reset loop
+    if (paused <= 0 && y === 0 && vy === 0 && bounces > 0) {
+      reset();
+    }
+
+    // Decay squash back to 0
+    squash *= 0.82;
+
+    // Convert to screen coords
+    const ballY = groundY - y * ppm - ballRadius;
+
+    // Record trail
+    trail.push({ x: cx, y: ballY + ballRadius });
+    if (trail.length > 12) trail.shift();
+
+    // ----- RENDER -----
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+    drawBackground();
+    drawShadow(cx, groundY, Math.max(y, 0));
+
+    // Motion trail
+    for (let i = 0; i < trail.length - 1; i++) {
+      const p = trail[i];
+      const alpha = (i / trail.length) * 0.25;
+      ctx.fillStyle = `rgba(110, 200, 255, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, ballRadius * 0.6 * (i / trail.length), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    drawBall(cx, ballY);
+
+    // ----- HUD UPDATE -----
+    hud.h.textContent = Math.max(y, 0).toFixed(2) + ' m';
+    hud.v.textContent = vy.toFixed(2) + ' m/s';
+    hud.b.textContent = bounces;
+    // Mechanical energy relative to initial: E = mgh + ½mv², compare to mgh₀
+    const E = g * Math.max(y, 0) + 0.5 * vy * vy;
+    const E0 = g * initialHeight;
+    hud.e.textContent = (E / E0 * 100).toFixed(1) + '%';
+
+    requestAnimationFrame(step);
+  };
+
+  requestAnimationFrame((t) => { lastT = t; step(t); });
+})();
+</script>
+</body>
+</html>

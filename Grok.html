@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bouncing Ball Simulation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom, #0a0a2e, #1a1a4e);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: system-ui, sans-serif;
+        }
+        
+        canvas {
+            border: 3px solid #4a90e2;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+            background: #0f0f2e;
+        }
+        
+        .info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #aaa;
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 16px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div class="info">
+        Gravity Bouncing Ball<br>
+        <span style="font-size:12px;">Restitution: 0.82 • Auto-resets</span>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Physics parameters
+        let x = 400;
+        let y = 150;
+        let vy = 0;
+        let vx = 1.5;           // slight horizontal drift for visual interest
+        const radius = 25;
+        const gravity = 0.42;
+        const restitution = 0.82; // energy retention per bounce
+        const friction = 0.985;   // slight horizontal damping
+        const groundY = 520;
+        
+        let isBouncing = true;
+        let bounceCount = 0;
+        
+        // Ball appearance
+        function drawBall() {
+            // Shadow
+            ctx.save();
+            ctx.translate(x + 6, y + 12);
+            ctx.scale(1, 0.4);
+            ctx.beginPath();
+            ctx.arc(0, 0, radius * 0.95, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+            ctx.fill();
+            ctx.restore();
+            
+            // Main ball with gradient
+            const gradient = ctx.createRadialGradient(
+                x - radius * 0.35, 
+                y - radius * 0.35, 
+                radius * 0.2,
+                x + radius * 0.1, 
+                y + radius * 0.2, 
+                radius * 1.1
+            );
+            gradient.addColorStop(0, '#ff4d4d');
+            gradient.addColorStop(1, '#b30000');
+            
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            // Highlight
+            ctx.beginPath();
+            ctx.arc(x - radius * 0.35, y - radius * 0.35, radius * 0.35, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+            ctx.fill();
+            
+            // Inner shine
+            ctx.beginPath();
+            ctx.arc(x - radius * 0.45, y - radius * 0.45, radius * 0.15, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.fill();
+        }
+        
+        function drawGround() {
+            // Ground line
+            ctx.strokeStyle = '#4a90e2';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(50, groundY + radius * 0.6);
+            ctx.lineTo(750, groundY + radius * 0.6);
+            ctx.stroke();
+            
+            // Ground reflection / highlight
+            ctx.strokeStyle = 'rgba(74, 144, 226, 0.3)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(50, groundY + radius * 0.6 + 4);
+            ctx.lineTo(750, groundY + radius * 0.6 + 4);
+            ctx.stroke();
+        }
+        
+        function updatePhysics() {
+            // Apply gravity
+            vy += gravity;
+            
+            // Update position
+            y += vy;
+            x += vx;
+            
+            // Horizontal bounce off walls
+            if (x + radius > 780) {
+                x = 780 - radius;
+                vx = -vx * 0.75;
+            }
+            if (x - radius < 20) {
+                x = 20 + radius;
+                vx = -vx * 0.75;
+            }
+            
+            // Ground collision
+            if (y + radius >= groundY) {
+                y = groundY - radius;
+                vy = -vy * restitution;
+                vx *= friction;
+                
+                bounceCount++;
+                
+                // Stop tiny bounces
+                if (Math.abs(vy) < 1.2) {
+                    vy = 0;
+                    vx *= 0.92;
+                    
+                    // Auto-reset after coming to rest
+                    if (Math.abs(vx) < 0.3 && bounceCount > 8) {
+                        resetBall();
+                    }
+                }
+            }
+        }
+        
+        function resetBall() {
+            y = 120 + Math.random() * 60;
+            vy = 0;
+            x = 300 + Math.random() * 200;
+            vx = (Math.random() - 0.5) * 4 + 1.2; // slight random horizontal velocity
+            bounceCount = 0;
+        }
+        
+        function draw() {
+            // Clear canvas with slight fade for motion blur effect
+            ctx.fillStyle = 'rgba(15, 15, 46, 0.92)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            drawGround();
+            updatePhysics();
+            drawBall();
+        }
+        
+        function gameLoop() {
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Initialize
+        window.onload = function() {
+            // Initial velocity
+            vy = 8;
+            vx = 2.5;
+            
+            gameLoop();
+        };
+        
+        // Allow clicking to reset manually
+        canvas.addEventListener('click', () => {
+            resetBall();
+            vy = -18; // give a little kick when clicked
+        });
+    </script>
+</body>
+</html>
