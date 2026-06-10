@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - Physics-Based Bouncing Ball Simulation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        h2 {
+            font-size: 1.8em;
+            color: #2c3e50;
+            margin: 30px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .intro {
+            font-size: 1.2em;
+            color: #555;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .models-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+        
+        .model-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            border-left: 5px solid #3498db;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .model-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .model-card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .model-card p {
+            color: #666;
+            font-size: 0.95em;
+        }
+        
+        .features {
+            background: #f0f7ff;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+        }
+        
+        .features ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .features li {
+            padding: 10px 0;
+            border-bottom: 1px solid #d0e3f7;
+            display: flex;
+            align-items: center;
+        }
+        
+        .features li:before {
+            content: "✓";
+            color: #3498db;
+            font-weight: bold;
+            margin-right: 15px;
+            font-size: 1.2em;
+        }
+        
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .tech-tag {
+            background: #3498db;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+        
+        .cta {
+            text-align: center;
+            margin: 40px 0 20px 0;
+        }
+        
+        .cta a {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 1.1em;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .cta a:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Physics-Based Bouncing Ball Simulation</h1>
+            <p>Exploring AI-generated physics simulations</p>
+        </header>
+        
+        <div class="content">
+            <p class="intro">
+                This project showcases how different AI models approach the same physics simulation problem. 
+                Each HTML file contains a complete bouncing ball simulation created by a different AI, 
+                demonstrating their unique implementation styles and physics approaches.
+            </p>
+            
+            <h2>AI Models Featured</h2>
+            <div class="models-grid">
+                <div class="model-card">
+                    <h3>ChatGPT</h3>
+                    <p>OpenAI's conversational AI model with strong code generation capabilities and understanding of physics concepts.</p>
+                </div>
+                
+                <div class="model-card">
+                    <h3>Claude</h3>
+                    <p>Anthropic's AI assistant known for careful reasoning and detailed explanations in code generation.</p>
+                </div>
+                
+                <div class="model-card">
+                    <h3>Gemini</h3>
+                    <p>Google's multimodal AI model with strong capabilities in code generation and mathematical concepts.</p>
+                </div>
+                
+                <div class="model-card">
+                    <h3>Grok</h3>
+                    <p>xAI's model designed for real-time knowledge and straightforward problem-solving approaches.</p>
+                </div>
+                
+                <div class="model-card">
+                    <h3>Kimi</h3>
+                    <p>Moonshot AI's model with strong capabilities in Chinese and English language tasks.</p>
+                </div>
+                
+                <div class="model-card">
+                    <h3>MiMo</h3>
+                    <p>Xiaomi's AI model with focus on practical applications and efficient implementations.</p>
+                </div>
+                
+                <div class="model-card">
+                    <h3>Qwen</h3>
+                    <p>Alibaba's AI model with strong capabilities in code generation and technical tasks.</p>
+                </div>
+            </div>
+            
+            <h2>Physics Features</h2>
+            <div class="features">
+                <ul>
+                    <li>Realistic gravity simulation</li>
+                    <li>Energy restitution (bounciness) calculation</li>
+                    <li>Smooth 60fps animations</li>
+                    <li>Responsive canvas rendering</li>
+                    <li>Visual effects and styling</li>
+                    <li>Cross-browser compatibility</li>
+                </ul>
+            </div>
+            
+            <h2>Technologies Used</h2>
+            <div class="tech-stack">
+                <span class="tech-tag">HTML5 Canvas</span>
+                <span class="tech-tag">JavaScript ES6+</span>
+                <span class="tech-tag">CSS3</span>
+                <span class="tech-tag">Physics Simulation</span>
+                <span class="tech-tag">Animation</span>
+            </div>
+            
+            <div class="cta">
+                <a href="https://github.com/mahinboylk/physics-based-looping-bouncing-ball-simulation">View on GitHub</a>
+            </div>
+        </div>
+        
+        <footer>
+            <p>&copy; 2024 Physics-Based Bouncing Ball Simulation Project</p>
+        </footer>
+    </div>
+</body>
+</html>
